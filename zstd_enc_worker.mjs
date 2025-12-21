@@ -13,16 +13,17 @@ const worker=await new Promise(r=>{
 });
 /**
  * Compresses an array of bytes with Zstd compression.
+ * The uncompressed version is transferred to the worker and transferred back on completion.
  * @param {Uint8Array} bytes
  * @param {1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22} [level=22]
- * @return {Promise<Uint8Array>}
+ * @return {Promise<{compressed:Uint8Array,uncompressed:Uint8Array}>}
  */
 const zstd=(bytes,level=22)=>new Promise(r=>{
-  worker.onmessage=msg=>{
+  worker.onmessage=({data:{compressed,uncompressed}})=>{
     worker.onmessage=null;
-    r(msg.data);
+    r({compressed,uncompressed});
   }
-  worker.postMessage({bytes,level});
+  worker.postMessage({uncompressed:bytes,level},[bytes.buffer]);
 });
 
 export {zstd};

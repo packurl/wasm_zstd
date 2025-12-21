@@ -43,10 +43,10 @@ divs[2].textContent='Initializing compressor...';
 const {zstd,unzstd}=await mod;
 divs[2].textContent+='done';
 divs[3].textContent='Compressing best quality...';
-const compressedBest=await zstd(encrypted,22);
+const {compressed:compressedBest,uncompressed:encrypted2}=await zstd(encrypted,22);
 divs[3].textContent+=`done (${compressedBest.byteLength} B)`;
 divs[4].textContent='Decompressing...';
-const decompressedBest=await unzstd(compressedBest);
+const {uncompressed:decompressedBest}=await unzstd(compressedBest);
 divs[4].textContent+=`done (${decompressedBest.byteLength} B)`;
 divs[5].textContent='Decrypting...';
 const decryptedBest=new Uint8Array(await crypto.subtle.decrypt({name: 'AES-GCM',iv},key,decompressedBest));
@@ -65,10 +65,10 @@ if(sameBest){
 }
 divs[6].innerHTML+=sameBest?'<span class="ok">identical</span>':'<span class="ko">not identical</span>';
 divs[7].textContent='Compressing fast...';
-const compressedFast=await unzstd(encrypted,5);
+const {compressed:compressedFast}=await zstd(encrypted2,5);
 divs[7].textContent+=`done (${compressedFast.byteLength} B)`;
 divs[8].textContent='Decompressing...';
-const decompressedFast=await unzstd(compressedFast);
+const {uncompressed:decompressedFast}=await unzstd(compressedFast);
 divs[8].textContent+=`done (${decompressedFast.byteLength} B)`;
 divs[9].textContent='Decrypting...';
 const decryptedFast=new Uint8Array(await crypto.subtle.decrypt({name: 'AES-GCM',iv},key,decompressedFast));

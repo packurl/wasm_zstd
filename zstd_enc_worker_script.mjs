@@ -1,3 +1,6 @@
 import {zstd} from "./zstd_enc.mjs";
-onmessage=async({data:{bytes,level}})=>postMessage(zstd(bytes,level));
+onmessage=async({data:{uncompressed,level}})=>{
+  const compressed=zstd(uncompressed,level);
+  postMessage({compressed,uncompressed},[compressed.buffer,uncompressed.buffer]);
+}
 postMessage('ready');

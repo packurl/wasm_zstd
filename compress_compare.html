@@ -73,15 +73,15 @@ const zstd=async(bytes,level)=>{
     }
   });
   const t=Date.now();
-  const compressed=await new Promise(r=>{
-    worker.onmessage=msg=>{
+  const {compressed,uncompressed}=await new Promise(r=>{
+    worker.onmessage=({data:{uncompressed,compressed}})=>{
       worker.onmessage=null;
-      r(msg.data);
+      r({uncompressed,compressed});
       worker.terminate();
     }
-    worker.postMessage({bytes,level});
+    worker.postMessage({uncompressed:bytes,level},[bytes.buffer]);
   });
-  return {duration:Date.now()-t,bytes:compressed};
+  return {duration:Date.now()-t,compressed,uncompressed};
 };
 const unzstd=async(bytes)=>{
   const worker=new Worker(new URL('./zstd_worker_script.mjs',import.meta.url),{type:'module'});
@@ -92,15 +92,15 @@ const unzstd=async(bytes)=>{
     }
   });
   const t=Date.now();
-  const decompressed=await new Promise(r=>{
-    worker.onmessage=msg=>{
+  const {compressed,uncompressed}=await new Promise(r=>{
+    worker.onmessage=({data:{uncompressed,compressed}})=>{
       worker.onmessage=null;
-      r(msg.data);
+      r({uncompressed,compressed});
       worker.terminate();
     }
-    worker.postMessage(bytes);
+    worker.postMessage(bytes,[bytes.buffer]);
   });
-  return {duration:Date.now()-t,bytes:decompressed};
+  return {duration:Date.now()-t,compressed,uncompressed};
 };
 const main=document.querySelector('main');
 main.classList.add('ready');
@@ -125,10 +125,11 @@ const dropListener=async e=>{
   window.removeEventListener('dragover',dragListener);
   window.removeEventListener('drop',dropListener);
   const file=e.dataTransfer.files.item(0);
+  let original=await read(file);
   for(const level of levels){
     console.log(level);
-    const original=await read(file);
-    const {duration:compressionTime,bytes:compressed}=await zstd(original,level);
+    const {duration:compressionTime,compressed,uncompressed}=await zstd(original,level);
+    original=uncompressed;
     const blob=new Blob([compressed],{type:'octet/stream'});
     const url=await new Promise((resolve,reject)=>{
       const reader=new FileReader();
@@ -145,7 +146,7 @@ const dropListener=async e=>{
     const spacer=level<10?'\xa0':'';
     div.innerHTML+=` ${spacer}${compressed.byteLength.toString().padStart(10,'\xa0')} B, compressed in ${(compressionTime/1000).toPrecision(3).replace(/^([0-9]+[.][0-9][0-9]*?)0+$/,'$1').padStart(6,'\xa0')} s`;
     main.appendChild(div);
-    const {duration:decompressionTime,bytes:decompressed}=await unzstd(compressed);
+    const {duration:decompressionTime,uncompressed: decompressed}=await unzstd(compressed);
     div.innerHTML+=`, decompressed in ${(decompressionTime/1000).toPrecision(3).replace(/^([0-9]+[.][0-9][0-9]*?)0+$/,'$1').padStart(6,'\xa0')} s`;
     if(decompressed.length!==original.length) throw new Error(`Expected length of ${original.length} but got ${decompressed.length}`);
   }

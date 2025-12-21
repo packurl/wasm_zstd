@@ -65,7 +65,7 @@ const dropListener=async e=>{
   window.removeEventListener('dragover',dragListener);
   window.removeEventListener('drop',dropListener);
   const file=e.dataTransfer.files.item(0);
-  const compressed=await zstd(await read(file),3);
+  const {compressed}=await zstd(await read(file),3);
   const blob=new Blob([compressed],{type:'octet/stream'});
   const url=await new Promise((resolve,reject)=>{
     const reader=new FileReader();

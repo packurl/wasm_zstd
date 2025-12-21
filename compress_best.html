@@ -73,12 +73,12 @@ const dropListener=async e=>{
   console.log(file.size);
   const uncompressed=await read(file);
   const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',uncompressed));
-  const compressed=await zstd(uncompressed,22);
-  const decompressed=await unzstd(compressed);
+  const {compressed}=await zstd(uncompressed,22);
+  const {uncompressed:decompressed,compressed:compressed2}=await unzstd(compressed);
   new Uint8Array(await crypto.subtle.digest('SHA-256',decompressed)).forEach((it,i)=>{
     if(it!==hash[i]) throw new Error('Verification failed.');
   });
-  const blob=new Blob([compressed],{type: 'octet/stream'});
+  const blob=new Blob([compressed2],{type: 'octet/stream'});
   const url=await new Promise((resolve,reject)=>{
     const reader=new FileReader();
     reader.addEventListener('load',e=>resolve(e.target.result));
@@ -91,7 +91,7 @@ const dropListener=async e=>{
   a.innerHTML=`${file.name}.zstd`;
   main.classList.remove('busy');
   main.appendChild(a);
-  main.innerHTML+=`<br>(${compressed.byteLength} B)`;
+  main.innerHTML+=`<br>(${compressed2.byteLength} B)`;
   window.addEventListener('dragover',dragListener,false);
   window.addEventListener('drop',dropListener,false);
 };
